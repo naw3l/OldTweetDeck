@@ -1,3 +1,8 @@
+const extraInfoSpec = ["blocking", "responseHeaders"];
+if (chrome.webRequest.OnHeadersReceivedOptions.hasOwnProperty("EXTRA_HEADERS")) {
+    extraInfoSpec.push("extraHeaders");
+}
+
 chrome.webRequest.onHeadersReceived.addListener(
     function(details) {
         let headers = details.responseHeaders.filter(header => header.name.toLowerCase() !== 'content-security-policy' && header.name.toLowerCase() !== 'location');
@@ -6,7 +11,7 @@ chrome.webRequest.onHeadersReceived.addListener(
         }
     },
     {urls: ["https://tweetdeck.twitter.com/*"]},
-    ["blocking", "responseHeaders", "extraHeaders"]
+    extraInfoSpec
 );
 
 chrome.webRequest.onBeforeRequest.addListener(
@@ -22,9 +27,26 @@ chrome.webRequest.onBeforeRequest.addListener(
                 return {
                     redirectUrl: chrome.runtime.getURL('/files/version.json')
                 }
-            }
+            };
         } catch(e) {}
     },
     {urls: ["https://tweetdeck.twitter.com/*"]},
+    ["blocking"]
+);
+
+chrome.webRequest.onBeforeRequest.addListener(
+    function(details) {
+        try {
+            let parsedUrl = new URL(details.url);
+            let path = parsedUrl.pathname;
+            let initiator = details.initiator || details.originUrl || details.documentUrl;
+            if(path.startsWith('/gryphon-client/') && initiator === 'https://tweetdeck.twitter.com') {
+                return {
+                    cancel: true
+                }
+            }
+        } catch(e) {}
+    },
+    {urls: ["https://abs.twimg.com/*"]},
     ["blocking"]
 );
