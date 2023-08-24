@@ -10,9 +10,20 @@ chrome.webRequest.onHeadersReceived.addListener(
             responseHeaders: headers
         }
     },
-    {urls: ["https://tweetdeck.twitter.com/*"]},
+    {urls: ["https://twitter.com/i/tweetdeck"]},
     extraInfoSpec
 );
+
+chrome.webRequest.onBeforeSendHeaders.addListener(
+    function(details) {
+        let headers = details.requestHeaders.filter(header => header.name.toLowerCase() !== 'referer');
+        return {
+            requestHeaders: headers
+        }
+    },
+    {urls: ["https://twitter.com/i/api/graphql/*"]},
+    extraInfoSpec.map(s => s.replace('response', 'request'))
+)
 
 chrome.webRequest.onBeforeRequest.addListener(
     function(details) {
@@ -30,23 +41,16 @@ chrome.webRequest.onBeforeRequest.addListener(
             };
         } catch(e) {}
     },
-    {urls: ["https://tweetdeck.twitter.com/*"]},
+    {urls: ["https://*.twitter.com/*"]},
     ["blocking"]
 );
 
 chrome.webRequest.onBeforeRequest.addListener(
-    function(details) {
-        try {
-            let parsedUrl = new URL(details.url);
-            let path = parsedUrl.pathname;
-            let initiator = details.initiator || details.originUrl || details.documentUrl;
-            if(path.startsWith('/gryphon-client/') && initiator === 'https://tweetdeck.twitter.com') {
-                return {
-                    cancel: true
-                }
-            }
-        } catch(e) {}
+    function() {
+        return {
+            redirectUrl: 'https://twitter.com/i/tweetdeck'
+        }
     },
-    {urls: ["https://abs.twimg.com/*"]},
+    {urls: ["https://tweetdeck.twitter.com/*"]},
     ["blocking"]
 );
